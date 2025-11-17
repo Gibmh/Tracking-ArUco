@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Aruco Tracker</title>
+    <style>
+        /* --- Global --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 20px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* --- Tables container --- */
+        .tables {
+            display: flex;
+            gap: 50px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 250px;
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+
+        td {
+            border-bottom: 1px solid #eee;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        td span.status-dot {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Aruco Tracker</h1>
+    <button onclick="resetDB()">Reset DB</button>
+
+    <div class="tables">
+        <div>
+            <h2>Num_Aruco 1-8</h2>
+            <table>
+                <thead>
+                    <tr><th>Num</th><th>Status</th></tr>
+                </thead>
+                <tbody id="table-left"></tbody>
+            </table>
+        </div>
+        <div>
+            <h2>Num_Aruco 9-16</h2>
+            <table>
+                <thead>
+                    <tr><th>Num</th><th>Status</th></tr>
+                </thead>
+                <tbody id="table-right"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function loadStatus() {
+            const res = await fetch("/status");
+            const data = await res.json();
+
+            const leftBody = document.getElementById("table-left");
+            const rightBody = document.getElementById("table-right");
+            leftBody.innerHTML = "";
+            rightBody.innerHTML = "";
+
+            data.forEach(row => {
+                const tr = document.createElement("tr");
+                // tạo dot theo status: True = xanh lá, False = đỏ
+                const dotColor = row.Status === "True" ? "green" : "red";
+                tr.innerHTML = `
+                    <td>${row.Num_Aruco}</td>
+                    <td>
+                        <span class="status-dot" style="background-color:${dotColor};"></span>
+                    </td>
+                `;
+                if (row.Num_Aruco <= 8) {
+                    leftBody.appendChild(tr);
+                } else {
+                    rightBody.appendChild(tr);
+                }
+            });
+        }
+
+        async function updateStatus(num) {
+            await fetch("/update_status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ Num_Aruco: num })
+            });
+            loadStatus();
+        }
+
+        async function resetDB() {
+            await fetch("/reset_db");
+            loadStatus();
+        }
+
+        // Load lần đầu
+        loadStatus();
+
+        // Auto-refresh mỗi 5s
+        setInterval(loadStatus, 5000);
+    </script>
+</body>
+</html>
