@@ -1,16 +1,18 @@
 from flask import Flask, request, jsonify, render_template
 import gspread
 from google.oauth2.service_account import Credentials
+import os
 
 app = Flask(__name__)
 
 # --- CONNECT TO GOOGLE SHEET ---
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets",
-          "https://www.googleapis.com/auth/drive"]
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
 creds = Credentials.from_service_account_file("credentials.json", scopes=SCOPES)
 client = gspread.authorize(creds)
 sheet = client.open("DB_UAVCUP").sheet1  # tên sheet của bạn
-
 
 # --- API: GET toàn bộ trạng thái ---
 @app.route("/status", methods=["GET"])
@@ -29,7 +31,7 @@ def update_status():
     rows = sheet.get_all_values()  # bao gồm header
     for i in range(1, len(rows)):
         if rows[i][0] == str(num):
-            # Sửa ở đây: phải là list 2 chiều
+            # Cập nhật True (2 chiều list)
             sheet.update(f"B{i+1}", [["True"]])
             return jsonify({"message": f"Num_Aruco {num} set to True"})
 
@@ -38,16 +40,15 @@ def update_status():
 @app.route("/reset_db", methods=["GET"])
 def reset_db():
     rows = sheet.get_all_values()
-    for i in range(1,len(rows)):
-        sheet.update(f"B{i+1}",[["False"]])
-
+    for i in range(1, len(rows)):
+        sheet.update(f"B{i+1}", [["False"]])  # 2 chiều list
     return jsonify({"message":"Done reset DB for new battle!", "status":True})
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-
 # --- RUN SERVER ---
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Lấy port từ env nếu có (Render)
+    app.run(host="0.0.0.0", port=port, debug=True)
